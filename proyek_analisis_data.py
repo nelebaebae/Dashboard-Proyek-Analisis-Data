@@ -43,6 +43,7 @@ st.pyplot(plt)
 
 # Plot 3: Top 10 Fastest Shipping Categories
 st.header("Top 10 Kategori Produk dengan Waktu Pengiriman Tercepat (6 bulan terakhir)")
+top_10_fastest_shipping = result.sort_values(by='average_shipping_time_days').head(10)
 plt.figure(figsize=(12, 6))
 sns.barplot(x='product_category_name', y='average_shipping_time_days', data=top_10_fastest_shipping, palette='Blues_d')
 plt.xlabel('Kategori Produk')
