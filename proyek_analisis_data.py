@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Title and description
 st.title("Dashboard Proyek Analisis Data")
@@ -77,9 +75,8 @@ if uploaded_customers and uploaded_order_items and uploaded_order_reviews and up
         'review_score': 'mean'
     }).reset_index()
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.scatterplot(data=reviews_per_category, x='review_id', y='review_score', size='review_id', hue='review_score', ax=ax)
-    st.pyplot(fig)
+    reviews_data = reviews_per_category[['review_id', 'review_score']].set_index('review_id')
+    st.line_chart(reviews_data)
 
     # Plot 3: Waktu Pengiriman Rata-rata
     st.subheader('Waktu Pengiriman Rata-rata per Kategori')
@@ -88,9 +85,8 @@ if uploaded_customers and uploaded_order_items and uploaded_order_reviews and up
     items_orders_products_df['shipping_time_days'] = (pd.to_datetime(items_orders_products_df['order_delivered_customer_date']) - pd.to_datetime(items_orders_products_df['order_purchase_timestamp'])).dt.days
     shipping_time_per_category = items_orders_products_df.groupby('product_category_name')['shipping_time_days'].mean().reset_index()
 
-    fig2, ax2 = plt.subplots(figsize=(10, 6))
-    sns.barplot(x='product_category_name', y='shipping_time_days', data=shipping_time_per_category, ax=ax2)
-    plt.xticks(rotation=90)
-    st.pyplot(fig2)
+    st.bar_chart(shipping_time_per_category.set_index('product_category_name'))
 
-
+    st.write("Analisis lanjutan dan insights lebih detail bisa ditambahkan di sini sesuai kebutuhan Anda.")
+else:
+    st.write("Silakan unggah semua file dataset untuk melanjutkan.")
