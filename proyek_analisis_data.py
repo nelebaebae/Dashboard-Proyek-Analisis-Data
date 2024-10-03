@@ -10,22 +10,13 @@ Ini adalah dashboard yang menampilkan analisis data terkait korelasi ulasan prod
 dan waktu pengiriman produk, serta analisis pelanggan berdasarkan Recency, Frequency, dan Monetary.
 """)
 
-# Load data directly from your GitHub repository
-@st.cache
-def load_data():
-    base_url = "https://raw.githubusercontent.com/nelebaebae/Dashboard-Proyek-Analisis-Data/main/"
-    
-    customers_df = pd.read_csv(base_url + "customers_dataset.csv")
-    order_items_df = pd.read_csv(base_url + "order_items_dataset.csv")
-    order_review_df = pd.read_csv(base_url + "order_reviews_dataset.csv")
-    orders_df = pd.read_csv(base_url + "orders_dataset.csv")
-    products_df = pd.read_csv(base_url + "products_dataset.csv")
-    order_payments = pd.read_csv(base_url + "order_payments_dataset.csv")
-    
-    return customers_df, order_items_df, order_review_df, orders_df, products_df, order_payments
+customers_df = pd.read_csv("customers_dataset.csv")
+order_items_df = pd.read_csv("order_items_dataset.csv")
+order_review_df = pd.read_csv("order_reviews_dataset.csv")
+orders_df = pd.read_csv("orders_dataset.csv")
+products_df = pd.read_csv("products_dataset.csv")
+order_payments = pd.read_csv("order_payments_dataset.csv")
 
-# Load data
-customers_df, order_items_df, order_review_df, orders_df, products_df, order_payments = load_data()
 
 # Data cleaning
 order_review_df['review_comment_title'].fillna('No Comment', inplace=True)
