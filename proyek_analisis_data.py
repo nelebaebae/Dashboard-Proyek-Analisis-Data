@@ -1,11 +1,13 @@
 import streamlit as st
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Title and description
 st.title("Dashboard Proyek Analisis Data")
 st.write("""
 Ini adalah dashboard yang menampilkan analisis data terkait korelasi ulasan produk, metode pembayaran, 
-dan waktu pengiriman produk.
+dan waktu pengiriman produk, serta analisis pelanggan berdasarkan Recency, Frequency, dan Monetary.
 """)
 
 # Load data directly from your GitHub repository
@@ -40,52 +42,75 @@ products_df[numerical_columns] = products_df[numerical_columns].fillna(products_
 
 products_df = products_df.dropna(subset=['product_category_name'])
 
-# Sidebar filters
-st.sidebar.header('Filter Data')
-payment_type_filter = st.sidebar.multiselect('Metode Pembayaran', order_payments['payment_type'].unique())
-category_filter = st.sidebar.multiselect('Kategori Produk', products_df['product_category_name'].unique())
-
-# Filtered data based on user input
-if payment_type_filter:
-    order_payments_filtered = order_payments[order_payments['payment_type'].isin(payment_type_filter)]
-else:
-    order_payments_filtered = order_payments
-
-if category_filter:
-    products_filtered = products_df[products_df['product_category_name'].isin(category_filter)]
-else:
-    products_filtered = products_df
-
-# Show basic stats
-st.header('Statistik Dasar')
-st.write('Jumlah total pelanggan:', customers_df.shape[0])
-st.write('Jumlah total produk:', products_df.shape[0])
-
-# Plot 1: Jumlah Pesanan per Metode Pembayaran
-st.subheader('Jumlah Pesanan per Metode Pembayaran')
-payments_per_method_month_full = order_payments_filtered.groupby(['payment_type']).agg({
-    'order_id': 'count'
-}).reset_index()
-
-st.bar_chart(payments_per_method_month_full.set_index('payment_type'))
-
-# Plot 2: Korelasi antara Jumlah Ulasan dan Skor Rata-rata
-st.subheader('Korelasi antara Jumlah Ulasan dan Skor Rata-rata per Kategori')
+# Pertanyaan 1: Korelasi antara Jumlah Ulasan dan Tingkat Kepuasan Pelanggan
+st.header('Korelasi antara Jumlah Ulasan dan Tingkat Kepuasan Pelanggan')
 reviews_per_category = order_review_df.groupby('product_category_name').agg({
     'review_id': 'count',
     'review_score': 'mean'
 }).reset_index()
 
-reviews_data = reviews_per_category[['review_id', 'review_score']].set_index('review_id')
-st.line_chart(reviews_data)
+fig1, ax1 = plt.subplots(figsize=(12, 6))
+sns.scatterplot(data=reviews_per_category, x='review_id', y='review_score', size='review_id', hue='review_score', palette='viridis', ax=ax1)
+plt.title('Korelasi antara Jumlah Ulasan dan Tingkat Kepuasan Pelanggan per Kategori')
+plt.xlabel('Jumlah Ulasan')
+plt.ylabel('Rata-rata Skor Ulasan')
+st.pyplot(fig1)
 
-# Plot 3: Waktu Pengiriman Rata-rata
-st.subheader('Waktu Pengiriman Rata-rata per Kategori')
+# Pertanyaan 2: Jumlah Pesanan per Metode Pembayaran (Per Bulan)
+st.header('Jumlah Pesanan per Metode Pembayaran (Per Bulan)')
+payments_per_method_month_full = order_payments.groupby(['payment_type']).agg({
+    'order_id': 'count'
+}).reset_index()
+
+fig2, ax2 = plt.subplots(figsize=(14, 7))
+sns.barplot(x='payment_type', y='order_id', data=payments_per_method_month_full, ax=ax2)
+plt.title('Jumlah Pesanan per Metode Pembayaran')
+plt.xlabel('Metode Pembayaran')
+plt.ylabel('Jumlah Pesanan')
+st.pyplot(fig2)
+
+# Pertanyaan 3: Waktu Pengiriman Rata-rata per Kategori
+st.header('Waktu Pengiriman Rata-rata per Kategori')
 items_orders_products_df = pd.merge(order_items_df, orders_df_cleaned, on='order_id', how='left')
 items_orders_products_df = pd.merge(items_orders_products_df, products_df, on='product_id', how='left')
 items_orders_products_df['shipping_time_days'] = (pd.to_datetime(items_orders_products_df['order_delivered_customer_date']) - pd.to_datetime(items_orders_products_df['order_purchase_timestamp'])).dt.days
 shipping_time_per_category = items_orders_products_df.groupby('product_category_name')['shipping_time_days'].mean().reset_index()
 
-st.bar_chart(shipping_time_per_category.set_index('product_category_name'))
+fig3, ax3 = plt.subplots(figsize=(12, 6))
+sns.barplot(x='product_category_name', y='shipping_time_days', data=shipping_time_per_category, palette='Blues_d', ax=ax3)
+plt.title('Waktu Pengiriman Rata-rata per Kategori')
+plt.xticks(rotation=90)
+st.pyplot(fig3)
 
-st.write("Analisis lanjutan dan insights lebih detail bisa ditambahkan di sini sesuai kebutuhan Anda.")
+# Analisis Pelanggan: RFM Analysis
+st.header('Analisis Pelanggan: RFM (Recency, Frequency, Monetary)')
+orders_items_merged = pd.merge(order_items_df, orders_df_cleaned, on='order_id', how='left')
+
+# Step 2: Aggregate the data to compute Recency, Frequency, and Monetary
+rfm_df = orders_items_merged.groupby(by='customer_id', as_index=False).agg({
+    'order_purchase_timestamp': 'max',  # recency
+    'order_id': 'nunique',  # frequency
+    'price': 'sum'  # monetary value
+})
+
+rfm_df.columns = ['customer_id', 'last_order_date', 'frequency', 'monetary']
+
+latest_date = orders_items_merged['order_purchase_timestamp'].max()
+rfm_df['recency'] = (latest_date - rfm_df['last_order_date']).dt.days
+
+rfm_df.drop('last_order_date', axis=1, inplace=True)
+
+# Visualize RFM Analysis
+fig4, ax4 = plt.subplots(nrows=1, ncols=3, figsize=(18, 10))
+
+sns.barplot(x="recency", y="customer_id", data=rfm_df.sort_values(by="recency", ascending=True).head(5), palette="Blues_d", ax=ax4[0])
+ax4[0].set_title("Top 5 Customers by Recency (Days)")
+
+sns.barplot(x="frequency", y="customer_id", data=rfm_df.sort_values(by="frequency", ascending=False).head(5), palette="Greens_d", ax=ax4[1])
+ax4[1].set_title("Top 5 Customers by Frequency")
+
+sns.barplot(x="monetary", y="customer_id", data=rfm_df.sort_values(by="monetary", ascending=False).head(5), palette="Reds_d", ax=ax4[2])
+ax4[2].set_title("Top 5 Customers by Monetary Value")
+
+plt.tight_layout()
+st.pyplot(fig4)
