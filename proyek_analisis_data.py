@@ -10,13 +10,13 @@ Ini adalah dashboard yang menampilkan analisis data terkait korelasi ulasan prod
 dan waktu pengiriman produk, serta analisis pelanggan berdasarkan Recency, Frequency, dan Monetary.
 """)
 
+# Load data from CSV files
 customers_df = pd.read_csv("customers_dataset.csv")
 order_items_df = pd.read_csv("order_items_dataset.csv")
 order_review_df = pd.read_csv("order_reviews_dataset.csv")
 orders_df = pd.read_csv("orders_dataset.csv")
 products_df = pd.read_csv("products_dataset.csv")
 order_payments = pd.read_csv("order_payments_dataset.csv")
-
 
 # Data cleaning
 order_review_df['review_comment_title'].fillna('No Comment', inplace=True)
@@ -30,12 +30,14 @@ orders_df_cleaned['order_delivered_customer_date'].fillna('Unknown', inplace=Tru
 
 numerical_columns = ['product_name_lenght', 'product_description_lenght', 'product_photos_qty', 'product_weight_g', 'product_length_cm', 'product_height_cm', 'product_width_cm']
 products_df[numerical_columns] = products_df[numerical_columns].fillna(products_df[numerical_columns].mean())
-
 products_df = products_df.dropna(subset=['product_category_name'])
+
+# Merge order_reviews with products to get product_category_name
+order_reviews_with_category = pd.merge(order_review_df, products_df[['product_id', 'product_category_name']], on='product_id', how='left')
 
 # Pertanyaan 1: Korelasi antara Jumlah Ulasan dan Tingkat Kepuasan Pelanggan
 st.header('Korelasi antara Jumlah Ulasan dan Tingkat Kepuasan Pelanggan')
-reviews_per_category = order_review_df.groupby('product_category_name').agg({
+reviews_per_category = order_reviews_with_category.groupby('product_category_name').agg({
     'review_id': 'count',
     'review_score': 'mean'
 }).reset_index()
